@@ -1,0 +1,924 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Segundo Cérebro</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=JetBrains+Mono:wght@400;500&family=Syne:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg:#0f0f0d;--bg2:#181815;--bg3:#1f1f1b;--bg4:#272722;
+    --border:#2e2e28;--border2:#3a3a33;
+    --text:#e8e6dc;--text2:#9c9a8e;--text3:#5a5950;
+    --accent:#c9f542;--accent2:#a8d420;
+    --accent-dim:rgba(201,245,66,0.08);--accent-dim2:rgba(201,245,66,0.15);
+    --red:#ff6b6b;--amber:#f4a942;--teal:#5cd8b0;--purple:#b39ddb;--pink:#f48fb1;
+    --radius:8px;--radius-lg:12px;--sw:260px;--pw:300px;
+  }
+  *{box-sizing:border-box;margin:0;padding:0;}
+  body{font-family:'Syne',sans-serif;background:var(--bg);color:var(--text);height:100vh;overflow:hidden;display:flex;flex-direction:column;}
+
+  /* AUTH */
+  #auth-screen{position:fixed;inset:0;background:var(--bg);display:flex;align-items:center;justify-content:center;z-index:200;}
+  .auth-card{background:var(--bg2);border:1px solid var(--border2);border-radius:16px;padding:48px 40px;max-width:400px;width:90%;display:flex;flex-direction:column;align-items:center;}
+  .auth-logo{font-family:'DM Serif Display',serif;font-size:40px;color:var(--accent);margin-bottom:2px;}
+  .auth-tagline{font-size:12px;color:var(--text3);margin-bottom:32px;letter-spacing:1px;}
+  .auth-title{font-family:'DM Serif Display',serif;font-size:22px;margin-bottom:8px;text-align:center;}
+  .auth-sub{font-size:13px;color:var(--text2);text-align:center;line-height:1.65;margin-bottom:28px;}
+  .auth-btn{width:100%;padding:12px;border-radius:var(--radius);font-family:'Syne',sans-serif;font-size:14px;font-weight:600;cursor:pointer;border:none;transition:all .15s;display:flex;align-items:center;justify-content:center;gap:10px;}
+  .auth-google{background:var(--accent);color:#0f0f0d;margin-bottom:10px;}
+  .auth-google:hover{background:var(--accent2);}
+  .auth-local{background:transparent;color:var(--text2);border:1px solid var(--border2);}
+  .auth-local:hover{border-color:var(--border);color:var(--text);}
+  .auth-note{margin-top:20px;font-size:11px;color:var(--text3);text-align:center;line-height:1.65;padding:10px 14px;background:var(--bg3);border-radius:var(--radius);border:1px solid var(--border);}
+  .auth-note strong{color:var(--text2);}
+
+  /* TOPBAR */
+  .topbar{height:44px;border-bottom:1px solid var(--border);display:flex;align-items:center;padding:0 16px;gap:10px;background:var(--bg);flex-shrink:0;z-index:10;}
+  .logo{font-family:'DM Serif Display',serif;font-size:18px;color:var(--accent);letter-spacing:-.5px;margin-right:4px;}
+  .tsep{width:1px;height:20px;background:var(--border);}
+  .tbtn{background:none;border:none;color:var(--text2);cursor:pointer;padding:5px 10px;border-radius:var(--radius);font-family:'Syne',sans-serif;font-size:13px;display:flex;align-items:center;gap:6px;transition:background .15s,color .15s;}
+  .tbtn:hover{background:var(--bg3);color:var(--text);}
+  .tbtn.active{background:var(--accent-dim);color:var(--accent);}
+  .tsearch{flex:1;max-width:340px;margin-left:auto;position:relative;}
+  .tsearch input{width:100%;background:var(--bg3);border:1px solid var(--border);border-radius:var(--radius);color:var(--text);font-family:'Syne',sans-serif;font-size:13px;padding:6px 12px 6px 30px;outline:none;transition:border .15s;}
+  .tsearch input:focus{border-color:var(--border2);}
+  .tsearch input::placeholder{color:var(--text3);}
+  .sicon{position:absolute;left:9px;top:50%;transform:translateY(-50%);color:var(--text3);font-size:14px;pointer-events:none;}
+  .pill{font-size:11px;color:var(--text3);font-family:'JetBrains Mono',monospace;padding:3px 8px;background:var(--bg3);border-radius:20px;border:1px solid var(--border);white-space:nowrap;}
+
+  /* Drive indicator */
+  .drive-ind{display:flex;align-items:center;gap:5px;font-size:11px;color:var(--text3);font-family:'JetBrains Mono',monospace;padding:3px 8px;background:var(--bg3);border-radius:20px;border:1px solid var(--border);white-space:nowrap;}
+  .ddot{width:6px;height:6px;border-radius:50%;background:var(--text3);flex-shrink:0;transition:background .3s;}
+  .ddot.online{background:var(--accent);}
+  .ddot.syncing{background:var(--amber);animation:pulse 1s infinite;}
+  .ddot.error{background:var(--red);}
+  @keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
+
+  /* LAYOUT */
+  .main{display:flex;flex:1;overflow:hidden;}
+
+  /* SIDEBAR */
+  .sidebar{width:var(--sw);border-right:1px solid var(--border);display:flex;flex-direction:column;background:var(--bg);flex-shrink:0;overflow:hidden;}
+  .new-btn{background:var(--accent);color:#0f0f0d;border:none;border-radius:var(--radius);font-family:'Syne',sans-serif;font-size:13px;font-weight:600;padding:8px 12px;cursor:pointer;display:flex;align-items:center;gap:6px;transition:background .15s,transform .1s;margin:12px;width:calc(100% - 24px);}
+  .new-btn:hover{background:var(--accent2);}
+  .new-btn:active{transform:scale(.98);}
+  .slabel{font-size:10px;font-weight:600;letter-spacing:1.5px;color:var(--text3);text-transform:uppercase;padding:0 4px;margin-bottom:6px;}
+  .ssec{padding:12px 12px 4px;}
+  .tags-cloud{padding:4px 12px 8px;display:flex;flex-wrap:wrap;gap:5px;}
+  .tchip{font-size:11px;padding:3px 8px;border-radius:20px;border:1px solid var(--border2);color:var(--text2);cursor:pointer;transition:all .15s;font-family:'JetBrains Mono',monospace;background:transparent;}
+  .tchip:hover{border-color:var(--accent);color:var(--accent);}
+  .tchip.active{background:var(--accent-dim);border-color:var(--accent);color:var(--accent);}
+  .nlist{flex:1;overflow-y:auto;padding:4px 8px;}
+  .nlist::-webkit-scrollbar{width:4px;}
+  .nlist::-webkit-scrollbar-thumb{background:var(--border2);border-radius:2px;}
+  .ni{padding:10px;border-radius:var(--radius);cursor:pointer;transition:background .12s;margin-bottom:2px;border:1px solid transparent;}
+  .ni:hover{background:var(--bg3);}
+  .ni.active{background:var(--bg3);border-color:var(--border);}
+  .ni-title{font-size:13px;font-weight:500;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-bottom:3px;}
+  .ni-preview{font-size:11px;color:var(--text3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-bottom:5px;}
+  .ni-meta{display:flex;align-items:center;gap:5px;flex-wrap:wrap;}
+  .ndate{font-size:10px;color:var(--text3);font-family:'JetBrains Mono',monospace;}
+  .tmini{font-size:10px;padding:1px 6px;border-radius:20px;font-family:'JetBrains Mono',monospace;}
+
+  /* EDITOR */
+  .editor-area{flex:1;display:flex;flex-direction:column;overflow:hidden;background:var(--bg2);}
+  .etop{display:flex;align-items:center;gap:8px;padding:10px 20px;border-bottom:1px solid var(--border);flex-shrink:0;}
+  .etitle{flex:1;background:none;border:none;color:var(--text);font-family:'DM Serif Display',serif;font-size:22px;outline:none;}
+  .etitle::placeholder{color:var(--text3);}
+  .eact{background:none;border:1px solid var(--border);color:var(--text2);cursor:pointer;padding:5px 10px;border-radius:var(--radius);font-family:'Syne',sans-serif;font-size:12px;transition:all .15s;display:flex;align-items:center;gap:5px;white-space:nowrap;}
+  .eact:hover{border-color:var(--border2);color:var(--text);}
+  .eact.save{background:var(--accent-dim);border-color:var(--accent);color:var(--accent);}
+  .eact.save:hover{background:var(--accent-dim2);}
+  .eact.danger:hover{border-color:var(--red);color:var(--red);}
+  .tagrow{display:flex;align-items:center;gap:8px;padding:8px 20px;border-bottom:1px solid var(--border);flex-wrap:wrap;flex-shrink:0;}
+  .taglbl{font-size:11px;color:var(--text3);}
+  .tbadge{font-size:11px;padding:2px 8px;border-radius:20px;font-family:'JetBrains Mono',monospace;display:flex;align-items:center;gap:4px;}
+  .tbadge-x{cursor:pointer;opacity:.6;transition:opacity .1s;}
+  .tbadge-x:hover{opacity:1;}
+  .taginput{background:none;border:none;color:var(--text2);font-family:'JetBrains Mono',monospace;font-size:12px;outline:none;width:120px;padding:2px 4px;}
+  .taginput::placeholder{color:var(--text3);}
+  .ebody{flex:1;overflow:hidden;position:relative;}
+  #editor{width:100%;height:100%;background:none;border:none;color:var(--text);font-family:'JetBrains Mono',monospace;font-size:14px;line-height:1.8;padding:24px 32px;outline:none;resize:none;overflow-y:auto;}
+  #editor::-webkit-scrollbar{width:4px;}
+  #editor::-webkit-scrollbar-thumb{background:var(--border2);border-radius:2px;}
+  #editor::placeholder{color:var(--text3);}
+  .wc{position:absolute;bottom:14px;right:20px;font-size:11px;color:var(--text3);font-family:'JetBrains Mono',monospace;pointer-events:none;}
+
+  /* PREVIEW */
+  .preview{flex:1;overflow-y:auto;padding:24px 32px;font-size:15px;line-height:1.75;color:var(--text);display:none;}
+  .preview h1{font-family:'DM Serif Display',serif;font-size:28px;margin-bottom:16px;}
+  .preview h2{font-family:'DM Serif Display',serif;font-size:22px;margin:20px 0 10px;}
+  .preview h3{font-size:16px;font-weight:600;margin:16px 0 8px;}
+  .preview p{margin-bottom:12px;}
+  .preview code{font-family:'JetBrains Mono',monospace;font-size:12px;background:var(--bg3);padding:2px 6px;border-radius:4px;}
+  .preview pre{background:var(--bg3);border:1px solid var(--border);border-radius:var(--radius);padding:16px;margin:12px 0;overflow-x:auto;}
+  .preview pre code{background:none;padding:0;}
+  .preview blockquote{border-left:3px solid var(--accent);padding-left:16px;color:var(--text2);margin:12px 0;}
+  .preview ul,.preview ol{padding-left:20px;margin-bottom:12px;}
+  .preview li{margin-bottom:4px;}
+  .preview a{color:var(--accent);}
+  .preview strong{font-weight:600;}
+  .preview hr{border:none;border-top:1px solid var(--border);margin:20px 0;}
+  .preview::-webkit-scrollbar{width:4px;}
+  .preview::-webkit-scrollbar-thumb{background:var(--border2);border-radius:2px;}
+
+  /* RIGHT PANEL */
+  .rpanel{width:var(--pw);border-left:1px solid var(--border);background:var(--bg);display:flex;flex-direction:column;flex-shrink:0;overflow:hidden;}
+  .ptabs{display:flex;border-bottom:1px solid var(--border);flex-shrink:0;}
+  .ptab{flex:1;padding:10px 4px;font-size:11px;color:var(--text3);cursor:pointer;text-align:center;border:none;background:none;font-family:'Syne',sans-serif;transition:color .15s;border-bottom:2px solid transparent;}
+  .ptab:hover{color:var(--text2);}
+  .ptab.active{color:var(--accent);border-bottom-color:var(--accent);}
+  .pcontent{flex:1;overflow-y:auto;padding:14px;}
+  .pcontent::-webkit-scrollbar{width:4px;}
+  .pcontent::-webkit-scrollbar-thumb{background:var(--border2);border-radius:2px;}
+  .psec{margin-bottom:20px;}
+  .pstitle{font-size:10px;letter-spacing:1.2px;color:var(--text3);text-transform:uppercase;font-weight:600;margin-bottom:8px;}
+
+  /* Stats */
+  .sgrid{display:grid;grid-template-columns:1fr 1fr;gap:8px;}
+  .scard{background:var(--bg3);border:1px solid var(--border);border-radius:var(--radius);padding:10px 12px;}
+  .sval{font-family:'DM Serif Display',serif;font-size:24px;color:var(--accent);line-height:1;margin-bottom:3px;}
+  .slb{font-size:10px;color:var(--text3);}
+
+  /* Related */
+  .ritem{padding:8px 10px;border-radius:var(--radius);border:1px solid var(--border);cursor:pointer;margin-bottom:6px;transition:border-color .15s,background .15s;}
+  .ritem:hover{border-color:var(--border2);background:var(--bg3);}
+  .ritem-title{font-size:12px;font-weight:500;margin-bottom:3px;}
+  .ritem-tags{font-size:10px;color:var(--text3);font-family:'JetBrains Mono',monospace;}
+
+  /* Timeline */
+  .tlitem{display:flex;gap:10px;margin-bottom:12px;}
+  .tldot{width:8px;height:8px;border-radius:50%;background:var(--accent);margin-top:4px;flex-shrink:0;}
+  .tldot.old{background:var(--border2);}
+  .tlinfo{flex:1;}
+  .tltitle{font-size:12px;font-weight:500;margin-bottom:2px;}
+  .tldate{font-size:10px;color:var(--text3);font-family:'JetBrains Mono',monospace;}
+
+  /* Drive panel */
+  .dcard{background:var(--bg3);border:1px solid var(--border);border-radius:var(--radius);padding:12px;margin-bottom:10px;}
+  .dcard-title{font-size:12px;font-weight:500;margin-bottom:4px;}
+  .dcard-sub{font-size:11px;color:var(--text3);line-height:1.5;}
+  .dfolder{font-family:'JetBrains Mono',monospace;color:var(--accent);font-size:11px;}
+  .dbtn{width:100%;padding:8px;border-radius:var(--radius);font-family:'Syne',sans-serif;font-size:12px;cursor:pointer;border:1px solid var(--border2);background:transparent;color:var(--text2);transition:all .15s;margin-top:6px;display:flex;align-items:center;justify-content:center;gap:6px;}
+  .dbtn:hover{border-color:var(--accent);color:var(--accent);background:var(--accent-dim);}
+  .dbtn.danger:hover{border-color:var(--red);color:var(--red);background:rgba(255,107,107,.08);}
+  .dlog{background:var(--bg);border:1px solid var(--border);border-radius:var(--radius);padding:8px 10px;font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--text2);max-height:150px;overflow-y:auto;line-height:1.7;}
+  .dlog .ok{color:var(--accent);}
+  .dlog .err{color:var(--red);}
+  .dlog .info{color:var(--amber);}
+
+  /* Import */
+  .izone{border:2px dashed var(--border2);border-radius:var(--radius-lg);padding:24px 16px;text-align:center;cursor:pointer;transition:all .2s;margin-bottom:10px;}
+  .izone:hover,.izone.drag-over{border-color:var(--accent);background:var(--accent-dim);}
+  .izone-icon{font-size:24px;margin-bottom:6px;}
+  .izone-title{font-size:13px;font-weight:500;margin-bottom:3px;}
+  .izone-sub{font-size:11px;color:var(--text3);}
+
+  /* Empty */
+  .empty{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:40px;text-align:center;color:var(--text3);}
+  .empty-icon{font-size:48px;margin-bottom:16px;opacity:.4;}
+  .empty-title{font-family:'DM Serif Display',serif;font-size:20px;color:var(--text2);margin-bottom:8px;}
+  .empty-sub{font-size:13px;line-height:1.6;}
+
+  /* Toast */
+  .toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%) translateY(80px);background:var(--bg4);border:1px solid var(--border2);color:var(--text);padding:8px 18px;border-radius:var(--radius);font-size:13px;transition:transform .25s ease;z-index:300;white-space:nowrap;}
+  .toast.show{transform:translateX(-50%) translateY(0);}
+  .toast.success{border-color:var(--accent);color:var(--accent);}
+  .toast.error{border-color:var(--red);color:var(--red);}
+  .toast.warning{border-color:var(--amber);color:var(--amber);}
+
+  /* Tag colors */
+  .tc-teal{background:rgba(92,216,176,.12);color:var(--teal);border-color:rgba(92,216,176,.3);}
+  .tc-amber{background:rgba(244,169,66,.12);color:var(--amber);border-color:rgba(244,169,66,.3);}
+  .tc-purple{background:rgba(179,157,219,.12);color:var(--purple);border-color:rgba(179,157,219,.3);}
+  .tc-pink{background:rgba(244,143,177,.12);color:var(--pink);border-color:rgba(244,143,177,.3);}
+  .tc-accent{background:var(--accent-dim);color:var(--accent);border-color:rgba(201,245,66,.3);}
+  .tc-red{background:rgba(255,107,107,.12);color:var(--red);border-color:rgba(255,107,107,.3);}
+
+  .hidden{display:none!important;}
+  kbd{font-family:'JetBrains Mono',monospace;font-size:10px;background:var(--bg3);border:1px solid var(--border2);border-radius:4px;padding:1px 5px;color:var(--text3);}
+  ::-webkit-scrollbar{width:4px;}
+  ::-webkit-scrollbar-thumb{background:var(--border2);border-radius:2px;}
+  #graph-canvas{width:100%;height:100%;}
+</style>
+</head>
+<body>
+
+<!-- AUTH -->
+<div id="auth-screen">
+  <div class="auth-card">
+    <div class="auth-logo">✦</div>
+    <div class="auth-tagline">SEGUNDO CÉREBRO</div>
+    <div class="auth-title">Como deseja usar?</div>
+    <div class="auth-sub">Conecte ao Google Drive para sincronizar suas notas em qualquer dispositivo, ou use só localmente no navegador.</div>
+    <button class="auth-btn auth-google" onclick="signIn()">
+      <svg width="18" height="18" viewBox="0 0 18 18"><path fill="#4285F4" d="M17.64 9.2c0-.637-.057-1.251-.164-1.84H9v3.481h4.844c-.209 1.125-.843 2.078-1.796 2.717v2.258h2.908c1.702-1.567 2.684-3.874 2.684-6.615z"/><path fill="#34A853" d="M9 18c2.43 0 4.467-.806 5.956-2.18l-2.908-2.259c-.806.54-1.837.86-3.048.86-2.344 0-4.328-1.584-5.036-3.711H.957v2.332C2.438 15.983 5.482 18 9 18z"/><path fill="#FBBC05" d="M3.964 10.71c-.18-.54-.282-1.117-.282-1.71s.102-1.17.282-1.71V4.958H.957C.347 6.173 0 7.548 0 9s.348 2.827.957 4.042l3.007-2.332z"/><path fill="#EA4335" d="M9 3.58c1.321 0 2.508.454 3.44 1.345l2.582-2.58C13.463.891 11.426 0 9 0 5.482 0 2.438 2.017.957 4.958L3.964 7.29C4.672 5.163 6.656 3.58 9 3.58z"/></svg>
+      Entrar com Google Drive
+    </button>
+    <button class="auth-btn auth-local" onclick="useLocal()">Usar só localmente</button>
+    <div class="auth-note">
+      🔒 Permissão solicitada: <strong>drive.file</strong> — o app só acessa arquivos que ele mesmo criou. Nunca enxerga o restante do seu Drive.
+    </div>
+  </div>
+</div>
+
+<!-- TOPBAR -->
+<div class="topbar">
+  <span class="logo">✦ Cérebro</span>
+  <div class="tsep"></div>
+  <button class="tbtn active" id="btn-notes" onclick="switchView('notes')">📝 Notas</button>
+  <button class="tbtn" id="btn-graph" onclick="switchView('graph')">◉ Grafo</button>
+  <div class="tsep"></div>
+  <div class="tsearch">
+    <span class="sicon">⌕</span>
+    <input type="text" id="search-input" placeholder="Buscar… (Ctrl+K)" oninput="handleSearch(this.value)">
+  </div>
+  <div class="pill" id="stats-pill">0 notas</div>
+  <div class="drive-ind" id="drive-ind">
+    <div class="ddot" id="ddot"></div>
+    <span id="dstatus-txt">local</span>
+  </div>
+</div>
+
+<!-- MAIN -->
+<div class="main" id="view-notes">
+
+  <!-- SIDEBAR -->
+  <div class="sidebar">
+    <button class="new-btn" onclick="newNote()">＋ Nova nota</button>
+    <div class="ssec">
+      <div class="slabel">Tags</div>
+      <div class="tags-cloud" id="tags-cloud">
+        <span class="tchip" style="opacity:.4;cursor:default">nenhuma ainda</span>
+      </div>
+    </div>
+    <div class="ssec" style="flex:1;display:flex;flex-direction:column;min-height:0;">
+      <div class="slabel" id="nlist-label">Notas</div>
+      <div class="nlist" id="nlist"></div>
+    </div>
+  </div>
+
+  <!-- EDITOR -->
+  <div class="editor-area">
+    <div class="empty" id="empty-state">
+      <div class="empty-icon">✦</div>
+      <div class="empty-title">Seu segundo cérebro</div>
+      <div class="empty-sub">Crie uma nota ou sincronize com o Drive.<br><br>
+        <kbd>Ctrl+N</kbd> nova &nbsp; <kbd>Ctrl+S</kbd> salvar &nbsp; <kbd>Ctrl+K</kbd> buscar
+      </div>
+    </div>
+    <div id="editor-pane" style="display:none;flex-direction:column;flex:1;overflow:hidden;">
+      <div class="etop">
+        <input class="etitle" id="note-title" placeholder="Título da nota…" oninput="markDirty()">
+        <button class="eact" id="mode-btn" onclick="toggleMode()">👁 Preview</button>
+        <button class="eact save" onclick="saveNote()">💾 Salvar</button>
+        <button class="eact danger" onclick="deleteNote()">✕</button>
+      </div>
+      <div class="tagrow">
+        <span class="taglbl">tags:</span>
+        <div id="cur-tags"></div>
+        <input class="taginput" id="tag-input" placeholder="+ tag (Enter)" onkeydown="handleTagInput(event)">
+      </div>
+      <div class="ebody">
+        <textarea id="editor" placeholder="Escreva em Markdown…&#10;&#10;# Título&#10;**negrito** *itálico* `código`&#10;- lista" oninput="markDirty();updateWC();scheduleAS();"></textarea>
+        <div class="preview" id="preview"></div>
+        <div class="wc" id="wc">0 palavras</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- RIGHT PANEL -->
+  <div class="rpanel">
+    <div class="ptabs">
+      <button class="ptab active" id="tab-info" onclick="switchTab('info')">Info</button>
+      <button class="ptab" id="tab-related" onclick="switchTab('related')">Relacionadas</button>
+      <button class="ptab" id="tab-drive" onclick="switchTab('drive')">Drive</button>
+      <button class="ptab" id="tab-import" onclick="switchTab('import')">Importar</button>
+    </div>
+
+    <!-- INFO -->
+    <div class="pcontent" id="panel-info">
+      <div class="psec">
+        <div class="pstitle">Estatísticas</div>
+        <div class="sgrid">
+          <div class="scard"><div class="sval" id="s-total">0</div><div class="slb">notas</div></div>
+          <div class="scard"><div class="sval" id="s-tags">0</div><div class="slb">tags</div></div>
+          <div class="scard"><div class="sval" id="s-words">0</div><div class="slb">palavras</div></div>
+          <div class="scard"><div class="sval" id="s-today">0</div><div class="slb">hoje</div></div>
+        </div>
+      </div>
+      <div class="psec">
+        <div class="pstitle">Atividade recente</div>
+        <div id="timeline"></div>
+      </div>
+    </div>
+
+    <!-- RELATED -->
+    <div class="pcontent hidden" id="panel-related">
+      <div class="psec">
+        <div class="pstitle">Por tags compartilhadas</div>
+        <div id="related-list"><div style="font-size:12px;color:var(--text3)">Selecione uma nota.</div></div>
+      </div>
+    </div>
+
+    <!-- DRIVE -->
+    <div class="pcontent hidden" id="panel-drive">
+      <div class="psec">
+        <div class="pstitle">Google Drive</div>
+        <div class="dcard">
+          <div class="dcard-title">Status da conexão</div>
+          <div class="dcard-sub" id="drive-account">Não conectado</div>
+        </div>
+        <button class="dbtn" id="btn-sync-down" onclick="syncFromDrive()">⬇ Carregar notas do Drive</button>
+        <button class="dbtn" id="btn-sync-up" onclick="syncToDrive()">⬆ Enviar todas ao Drive</button>
+        <button class="dbtn hidden" id="btn-signout" onclick="signOut()">Desconectar conta Google</button>
+        <button class="dbtn" id="btn-signin-panel" onclick="signIn()">Conectar ao Google Drive</button>
+      </div>
+      <div class="psec">
+        <div class="pstitle">Log de sincronização</div>
+        <div class="dlog" id="drive-log">Aguardando…</div>
+      </div>
+    </div>
+
+    <!-- IMPORT -->
+    <div class="pcontent hidden" id="panel-import">
+      <div class="psec">
+        <div class="pstitle">Importar arquivos .md</div>
+        <div class="izone" id="izone"
+          onclick="document.getElementById('filepick').click()"
+          ondragover="onDragOver(event)" ondragleave="onDragLeave()" ondrop="onDrop(event)">
+          <div class="izone-icon">📂</div>
+          <div class="izone-title">Solte arquivos .md aqui</div>
+          <div class="izone-sub">ou clique para selecionar</div>
+        </div>
+        <input type="file" id="filepick" multiple accept=".md,.txt" onchange="doImport(this.files)" style="display:none">
+        <div class="pstitle" style="margin-top:10px">Log</div>
+        <div class="dlog" id="import-log">Nenhuma importação ainda.</div>
+      </div>
+      <div class="psec">
+        <div class="pstitle">Exportar</div>
+        <button class="dbtn" onclick="exportAll()">↓ Baixar todas como .md</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- GRAPH VIEW -->
+<div class="main hidden" id="view-graph">
+  <canvas id="graph-canvas"></canvas>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script src="https://accounts.google.com/gsi/client" async defer></script>
+<script>
+// ── CONFIG ──────────────────────────────────────────────
+const CLIENT_ID = '643180572332-pb4lcb5u0r4624c0k1uromdf1ck7t8un.apps.googleusercontent.com';
+const SCOPES    = 'https://www.googleapis.com/auth/drive';
+const FOLDER    = 'SegundoCerebro';
+const API       = 'https://www.googleapis.com/drive/v3';
+const UPLOAD    = 'https://www.googleapis.com/upload/drive/v3';
+
+// ── STATE ───────────────────────────────────────────────
+let notes       = JSON.parse(localStorage.getItem('sc_notes') || '[]');
+let currentId   = null;
+let dirty       = false;
+let previewMode = false;
+let activeTag   = null;
+let searchQ     = '';
+let token       = localStorage.getItem('sc_token') || null;
+let driveOn     = false;
+let folderId    = localStorage.getItem('sc_fid') || null;
+let asTimer     = null;
+let syncing     = false;
+
+const TCOLORS = ['tc-teal','tc-amber','tc-purple','tc-pink','tc-accent','tc-red'];
+const tcMap = {};
+const tc = t => { if (!tcMap[t]) tcMap[t] = TCOLORS[Object.keys(tcMap).length % TCOLORS.length]; return tcMap[t]; };
+
+// ── STORAGE ─────────────────────────────────────────────
+const saveL = () => localStorage.setItem('sc_notes', JSON.stringify(notes));
+const gid   = () => Date.now().toString(36) + Math.random().toString(36).slice(2);
+
+// ── AUTH ────────────────────────────────────────────────
+function signIn() {
+  const client = google.accounts.oauth2.initTokenClient({
+    client_id: CLIENT_ID, scope: SCOPES,
+    callback: async r => {
+      if (r.error) { toast('Erro: ' + r.error, 'error'); return; }
+      token = r.access_token;
+      localStorage.setItem('sc_token', token);
+      driveOn = true;
+      closeAuth();
+      setDriveStatus('online', 'Drive ✓');
+      updateDrivePanel();
+      dlog('✓ Autenticado com sucesso', 'ok');
+      await ensureFolder();
+      dlog('✓ Pasta /' + FOLDER + '/ pronta', 'ok');
+      toast('✦ Conectado ao Drive', 'success');
+      await syncFromDrive();
+    }
+  });
+  client.requestAccessToken();
+}
+
+function useLocal() {
+  driveOn = false; token = null;
+  closeAuth();
+  setDriveStatus('', 'local');
+  dlog('Modo local — notas salvas no navegador.', 'info');
+}
+
+function signOut() {
+  if (token) google.accounts.oauth2.revoke(token, () => {});
+  token = null; folderId = null; driveOn = false;
+  localStorage.removeItem('sc_token');
+  localStorage.removeItem('sc_fid');
+  setDriveStatus('', 'local');
+  updateDrivePanel();
+  toast('Desconectado do Drive', 'warning');
+  dlog('Sessão encerrada.', 'info');
+}
+
+const closeAuth = () => document.getElementById('auth-screen').style.display = 'none';
+
+// ── DRIVE API ───────────────────────────────────────────
+async function dreq(url, opts = {}) {
+  if (!token) throw new Error('Sem token');
+  const r = await fetch(url, {
+    ...opts, headers: { Authorization: 'Bearer ' + token, ...(opts.headers||{}) }
+  });
+  if (r.status === 401) { signOut(); throw new Error('Sessão expirada — reconecte.'); }
+  return r;
+}
+
+async function ensureFolder() {
+  if (folderId) return folderId;
+  const r = await dreq(`${API}/files?q=name='${FOLDER}' and mimeType='application/vnd.google-apps.folder' and trashed=false&fields=files(id)`);
+  const d = await r.json();
+  if (d.files && d.files.length) { folderId = d.files[0].id; }
+  else {
+    const cr = await dreq(`${API}/files`, { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ name: FOLDER, mimeType:'application/vnd.google-apps.folder' }) });
+    folderId = (await cr.json()).id;
+  }
+  localStorage.setItem('sc_fid', folderId);
+  return folderId;
+}
+
+async function listFiles() {
+  const fid = await ensureFolder();
+  const r = await dreq(`${API}/files?q='${fid}' in parents and trashed=false&fields=files(id,name,modifiedTime)&pageSize=500`);
+  return (await r.json()).files || [];
+}
+
+async function downloadFile(id) {
+  return await (await dreq(`${API}/files/${id}?alt=media`)).text();
+}
+
+async function uploadFile(name, content, existId = null) {
+  const fid = await ensureFolder();
+  const b = 'sc__' + Date.now();
+  const meta = existId ? { name } : { name, parents: [fid] };
+  const body = `--${b}\r\nContent-Type: application/json; charset=UTF-8\r\n\r\n${JSON.stringify(meta)}\r\n--${b}\r\nContent-Type: text/markdown; charset=UTF-8\r\n\r\n${content}\r\n--${b}--`;
+  const url  = existId ? `${UPLOAD}/files/${existId}?uploadType=multipart` : `${UPLOAD}/files?uploadType=multipart`;
+  const r    = await dreq(url, { method: existId ? 'PATCH' : 'POST', headers: {'Content-Type': `multipart/related; boundary=${b}`}, body });
+  return await r.json();
+}
+
+async function deleteFile(id) { await dreq(`${API}/files/${id}`, { method:'DELETE' }); }
+
+// ── SYNC ────────────────────────────────────────────────
+async function syncFromDrive() {
+  if (!driveOn || !token) { toast('Conecte ao Drive primeiro', 'warning'); return; }
+  if (syncing) return;
+  syncing = true;
+  setDriveStatus('syncing', 'carregando…');
+  dlog('⬇ Carregando do Drive…', 'info');
+  try {
+    const files = await listFiles();
+    dlog(`  ${files.length} arquivo(s) encontrado(s)`, 'info');
+    let imp = 0, upd = 0;
+    for (const f of files) {
+      const content = await downloadFile(f.id);
+      const title   = f.name.replace(/\.md$/, '');
+      const tags    = parseTags(content);
+      const ex      = notes.find(n => n.driveId === f.id || n.title === title);
+      if (ex) { ex.body = content; ex.title = title; ex.tags = tags; ex.driveId = f.id; ex.updated = new Date(f.modifiedTime).getTime(); upd++; }
+      else    { notes.unshift({ id: gid(), title, body: content, tags, driveId: f.id, created: Date.now(), updated: new Date(f.modifiedTime).getTime() }); imp++; }
+    }
+    saveL(); renderList(); updateStats();
+    dlog(`✓ ${imp} importada(s), ${upd} atualizada(s)`, 'ok');
+    setDriveStatus('online', 'Drive ✓');
+    toast(`⬇ ${files.length} nota(s) carregada(s)`, 'success');
+  } catch(e) {
+    dlog('✕ ' + e.message, 'err');
+    setDriveStatus('error', 'erro');
+    toast('Erro ao carregar', 'error');
+  } finally { syncing = false; }
+}
+
+async function syncToDrive() {
+  if (!driveOn || !token) { toast('Conecte ao Drive primeiro', 'warning'); return; }
+  if (syncing) return;
+  syncing = true;
+  setDriveStatus('syncing', 'enviando…');
+  dlog('⬆ Enviando ao Drive…', 'info');
+  try {
+    for (const n of notes) {
+      const fname = safeName(n.title) + '.md';
+      const res   = await uploadFile(fname, buildMd(n), n.driveId || null);
+      n.driveId   = res.id;
+    }
+    saveL();
+    dlog(`✓ ${notes.length} nota(s) enviada(s)`, 'ok');
+    setDriveStatus('online', 'Drive ✓');
+    toast(`⬆ ${notes.length} sincronizada(s)`, 'success');
+  } catch(e) {
+    dlog('✕ ' + e.message, 'err');
+    setDriveStatus('error', 'erro');
+    toast('Erro ao enviar', 'error');
+  } finally { syncing = false; }
+}
+
+async function saveToDrive(note) {
+  if (!driveOn || !token || syncing) return;
+  try {
+    setDriveStatus('syncing', 'salvando…');
+    const res    = await uploadFile(safeName(note.title) + '.md', buildMd(note), note.driveId || null);
+    note.driveId = res.id;
+    saveL();
+    setDriveStatus('online', 'Drive ✓');
+  } catch(e) { setDriveStatus('error', 'erro sync'); dlog('✕ ' + e.message, 'err'); }
+}
+
+const buildMd   = n => (n.tags.length ? `---\ntags: [${n.tags.join(', ')}]\ncreated: ${new Date(n.created).toISOString()}\n---\n\n` : '') + (n.body || '');
+const safeName  = t => (t || 'sem-titulo').replace(/[/\\?%*:|"<>]/g, '-').trim() || 'sem-titulo';
+
+const dlog = (msg, cls='') => {
+  const el = document.getElementById('drive-log');
+  el.innerHTML += `<div class="${cls}">${msg}</div>`;
+  el.scrollTop = el.scrollHeight;
+};
+
+function setDriveStatus(state, txt) {
+  document.getElementById('ddot').className = 'ddot' + (state ? ' ' + state : '');
+  document.getElementById('dstatus-txt').textContent = txt;
+}
+
+function updateDrivePanel() {
+  document.getElementById('btn-signout').classList.toggle('hidden', !driveOn);
+  document.getElementById('btn-signin-panel').classList.toggle('hidden', driveOn);
+  document.getElementById('drive-account').innerHTML = driveOn
+    ? `Conectado &nbsp;<span class="dfolder">/${FOLDER}/</span>`
+    : 'Não conectado — usando localStorage.';
+}
+
+// ── CRUD ────────────────────────────────────────────────
+function newNote() {
+  if (dirty) autoSave();
+  const n = { id: gid(), title:'', body:'', tags:[], created: Date.now(), updated: Date.now() };
+  notes.unshift(n); saveL();
+  openNote(n.id); renderList(); updateStats();
+  setTimeout(() => document.getElementById('note-title').focus(), 50);
+}
+
+function openNote(id) {
+  if (dirty && currentId) autoSave();
+  currentId = id;
+  const n = notes.find(x => x.id === id); if (!n) return;
+  document.getElementById('empty-state').style.display = 'none';
+  document.getElementById('editor-pane').style.display = 'flex';
+  document.getElementById('note-title').value = n.title;
+  document.getElementById('editor').value = n.body;
+  updateWC(); renderCurTags(n.tags); renderRelated(n); hlActive(id);
+  dirty = false;
+  if (previewMode) renderPreview();
+}
+
+async function saveNote() {
+  if (!currentId) return;
+  const n = notes.find(x => x.id === currentId); if (!n) return;
+  n.title   = document.getElementById('note-title').value || 'Sem título';
+  n.body    = document.getElementById('editor').value;
+  n.updated = Date.now();
+  saveL(); dirty = false; renderList(); updateStats();
+  toast('✦ Salvo', 'success');
+  await saveToDrive(n);
+}
+
+function autoSave() {
+  if (!currentId || !dirty) return;
+  const n = notes.find(x => x.id === currentId); if (!n) return;
+  n.title = document.getElementById('note-title').value || 'Sem título';
+  n.body  = document.getElementById('editor').value;
+  n.updated = Date.now();
+  saveL(); dirty = false;
+  saveToDrive(n);
+}
+
+function scheduleAS() {
+  clearTimeout(asTimer);
+  asTimer = setTimeout(() => { if (dirty) autoSave(); }, 2500);
+}
+
+async function deleteNote() {
+  if (!currentId || !confirm('Apagar esta nota?')) return;
+  const n = notes.find(x => x.id === currentId);
+  if (n && n.driveId && driveOn && token) {
+    try { await deleteFile(n.driveId); dlog('✓ Removida do Drive', 'ok'); } catch(e) {}
+  }
+  notes = notes.filter(x => x.id !== currentId);
+  saveL(); currentId = null; dirty = false;
+  document.getElementById('editor-pane').style.display = 'none';
+  document.getElementById('empty-state').style.display = '';
+  renderList(); updateStats();
+  toast('Nota removida', 'error');
+}
+
+const markDirty = () => dirty = true;
+
+// ── TAGS ────────────────────────────────────────────────
+function handleTagInput(e) {
+  if (e.key === 'Enter' || e.key === ',') {
+    e.preventDefault();
+    const v = e.target.value.trim().replace(/^#|,/g,'');
+    if (v) { addTag(v); e.target.value = ''; }
+  }
+  if (e.key === 'Backspace' && !e.target.value) {
+    const n = notes.find(x => x.id === currentId);
+    if (n && n.tags.length) { n.tags.pop(); saveL(); renderCurTags(n.tags); renderTagCloud(); }
+  }
+}
+
+function addTag(tag) {
+  const n = notes.find(x => x.id === currentId); if (!n) return;
+  if (!n.tags.includes(tag)) n.tags.push(tag);
+  saveL(); renderCurTags(n.tags); renderTagCloud(); markDirty();
+}
+
+function removeTag(tag) {
+  const n = notes.find(x => x.id === currentId); if (!n) return;
+  n.tags = n.tags.filter(t => t !== tag);
+  saveL(); renderCurTags(n.tags); renderTagCloud();
+}
+
+function renderCurTags(tags) {
+  document.getElementById('cur-tags').innerHTML = tags.map(t =>
+    `<span class="tbadge ${tc(t)}">#${t}<span class="tbadge-x" onclick="removeTag('${t}')">✕</span></span>`
+  ).join('');
+}
+
+const allTags = () => [...new Set(notes.flatMap(n => n.tags))];
+
+function renderTagCloud() {
+  const tags = allTags();
+  const el = document.getElementById('tags-cloud');
+  if (!tags.length) { el.innerHTML = `<span class="tchip" style="opacity:.4;cursor:default">nenhuma ainda</span>`; return; }
+  el.innerHTML = tags.map(t =>
+    `<span class="tchip ${activeTag===t?'active':''}" onclick="filterTag('${t}')">#${t}</span>`
+  ).join('');
+}
+
+function filterTag(tag) {
+  activeTag = activeTag === tag ? null : tag;
+  renderTagCloud(); renderList();
+}
+
+// ── LIST ────────────────────────────────────────────────
+function filtered() {
+  let list = [...notes];
+  if (activeTag) list = list.filter(n => n.tags.includes(activeTag));
+  if (searchQ)   list = list.filter(n => [n.title, n.body, ...n.tags].join(' ').toLowerCase().includes(searchQ.toLowerCase()));
+  return list;
+}
+
+function renderList() {
+  const list = filtered();
+  const el   = document.getElementById('nlist');
+  document.getElementById('nlist-label').textContent = activeTag ? '#'+activeTag : searchQ ? 'Resultados' : 'Notas';
+  document.getElementById('stats-pill').textContent  = notes.length + ' nota' + (notes.length!==1?'s':'');
+  if (!list.length) { el.innerHTML = `<div style="padding:16px 8px;font-size:12px;color:var(--text3);text-align:center">Nenhuma nota encontrada</div>`; return; }
+  el.innerHTML = list.map(n => {
+    const prev = (n.body||'').replace(/[#*`_\-\[\]]/g,'').slice(0,60).replace(/\n/g,' ');
+    const tags = n.tags.slice(0,2).map(t=>`<span class="tmini ${tc(t)}">#${t}</span>`).join('');
+    const cloud = n.driveId ? ' ☁' : '';
+    return `<div class="ni ${n.id===currentId?'active':''}" onclick="openNote('${n.id}')">
+      <div class="ni-title">${n.title||'Sem título'}<span style="font-size:10px;color:var(--text3)">${cloud}</span></div>
+      <div class="ni-preview">${prev||'…'}</div>
+      <div class="ni-meta"><span class="ndate">${fmtDate(n.updated)}</span>${tags}</div>
+    </div>`;
+  }).join('');
+}
+
+const hlActive = id => document.querySelectorAll('.ni').forEach(el => el.classList.toggle('active', el.getAttribute('onclick')?.includes(id)));
+const handleSearch = v => { searchQ = v; renderList(); };
+
+// ── PREVIEW ─────────────────────────────────────────────
+function toggleMode() {
+  previewMode = !previewMode;
+  document.getElementById('editor').style.display  = previewMode ? 'none' : 'block';
+  document.getElementById('preview').style.display = previewMode ? 'block' : 'none';
+  document.getElementById('mode-btn').textContent  = previewMode ? '✏ Editar' : '👁 Preview';
+  if (previewMode) renderPreview();
+}
+
+function renderPreview() {
+  document.getElementById('preview').innerHTML = parseMd(document.getElementById('editor').value);
+}
+
+function parseMd(s) {
+  let h = s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
+    .replace(/^#{6}\s(.+)$/gm,'<h6>$1</h6>').replace(/^#{5}\s(.+)$/gm,'<h5>$1</h5>')
+    .replace(/^#{4}\s(.+)$/gm,'<h4>$1</h4>').replace(/^#{3}\s(.+)$/gm,'<h3>$1</h3>')
+    .replace(/^#{2}\s(.+)$/gm,'<h2>$1</h2>').replace(/^#\s(.+)$/gm,'<h1>$1</h1>')
+    .replace(/\*\*(.+?)\*\*/g,'<strong>$1</strong>').replace(/\*(.+?)\*/g,'<em>$1</em>')
+    .replace(/`(.+?)`/g,'<code>$1</code>').replace(/^-{3,}$/gm,'<hr>')
+    .replace(/^&gt;\s(.+)$/gm,'<blockquote>$1</blockquote>')
+    .replace(/^[-*]\s(.+)$/gm,'<li>$1</li>').replace(/(<li>[\s\S]+?<\/li>)/g,'<ul>$1</ul>')
+    .replace(/<\/ul>\s*<ul>/g,'').replace(/\[(.+?)\]\((.+?)\)/g,'<a href="$2" target="_blank">$1</a>')
+    .replace(/\n\n/g,'</p><p>').replace(/\n/g,'<br>');
+  return '<p>' + h + '</p>';
+}
+
+function updateWC() {
+  const t = (document.getElementById('editor').value||'').trim();
+  document.getElementById('wc').textContent = (t ? t.split(/\s+/).length : 0) + ' palavras';
+}
+
+// ── STATS ────────────────────────────────────────────────
+function updateStats() {
+  const total = notes.length;
+  const tags  = allTags().length;
+  const words = notes.reduce((s,n) => s + ((n.body||'').trim().split(/\s+/).filter(Boolean).length), 0);
+  const today = notes.filter(n => new Date(n.updated).toDateString() === new Date().toDateString()).length;
+  document.getElementById('s-total').textContent = total;
+  document.getElementById('s-tags').textContent  = tags;
+  document.getElementById('s-words').textContent = words > 999 ? (words/1000).toFixed(1)+'k' : words;
+  document.getElementById('s-today').textContent = today;
+  renderTagCloud(); renderTimeline();
+}
+
+function renderTimeline() {
+  document.getElementById('timeline').innerHTML = [...notes]
+    .sort((a,b) => b.updated - a.updated).slice(0,6).map((n,i) =>
+      `<div class="tlitem"><div class="tldot ${i>1?'old':''}"></div><div class="tlinfo"><div class="tltitle">${n.title||'Sem título'}</div><div class="tldate">${fmtDate(n.updated)}</div></div></div>`
+    ).join('');
+}
+
+function renderRelated(note) {
+  if (!note || !note.tags.length) { document.getElementById('related-list').innerHTML = `<div style="font-size:12px;color:var(--text3)">Adicione tags para ver relacionadas.</div>`; return; }
+  const rel = notes.filter(n => n.id !== note.id && n.tags.some(t => note.tags.includes(t))).slice(0,8);
+  if (!rel.length) { document.getElementById('related-list').innerHTML = `<div style="font-size:12px;color:var(--text3)">Nenhuma nota com as mesmas tags.</div>`; return; }
+  document.getElementById('related-list').innerHTML = rel.map(n => {
+    const shared = n.tags.filter(t => note.tags.includes(t));
+    return `<div class="ritem" onclick="openNote('${n.id}')"><div class="ritem-title">${n.title||'Sem título'}</div><div class="ritem-tags">${shared.map(t=>'#'+t).join(' ')}</div></div>`;
+  }).join('');
+}
+
+// ── IMPORT / EXPORT ─────────────────────────────────────
+const onDragOver  = e => { e.preventDefault(); document.getElementById('izone').classList.add('drag-over'); };
+const onDragLeave = () => document.getElementById('izone').classList.remove('drag-over');
+function onDrop(e) { e.preventDefault(); onDragLeave(); doImport(e.dataTransfer.files); }
+
+function doImport(files) {
+  const log = document.getElementById('import-log');
+  log.innerHTML = '';
+  Array.from(files).forEach(file => {
+    const r = new FileReader();
+    r.onload = async e => {
+      const content = e.target.result;
+      const title   = file.name.replace(/\.(md|txt)$/, '');
+      const tags    = parseTags(content);
+      const n       = { id: gid(), title, body: content, tags, created: Date.now(), updated: Date.now() };
+      notes.unshift(n); saveL();
+      log.innerHTML += `<div><span class="ok">✓</span> ${file.name} (${tags.length} tag${tags.length!==1?'s':''})</div>`;
+      log.scrollTop = log.scrollHeight;
+      renderList(); updateStats();
+      if (driveOn && token) await saveToDrive(n);
+    };
+    r.readAsText(file);
+  });
+}
+
+function parseTags(content) {
+  const tags = new Set();
+  const fm = content.match(/^---\n([\s\S]+?)\n---/);
+  if (fm) { const tl = fm[1].match(/tags:\s*\[?([^\]\n]+)\]?/); if (tl) tl[1].split(',').forEach(t => tags.add(t.trim().replace(/["'#]/g,''))); }
+  for (const m of content.matchAll(/#([a-zA-Z0-9_-]+)/g)) tags.add(m[1]);
+  return [...tags].filter(Boolean).slice(0,10);
+}
+
+function exportAll() {
+  notes.forEach(n => {
+    const a = Object.assign(document.createElement('a'), { href: URL.createObjectURL(new Blob([buildMd(n)],{type:'text/markdown'})), download: safeName(n.title)+'.md' });
+    a.click();
+  });
+  toast(`↓ ${notes.length} nota(s) exportada(s)`, 'success');
+}
+
+// ── TABS / VIEWS ─────────────────────────────────────────
+function switchTab(tab) {
+  ['info','related','drive','import'].forEach(t => {
+    document.getElementById('panel-'+t).classList.toggle('hidden', t!==tab);
+    document.getElementById('tab-'+t).classList.toggle('active', t===tab);
+  });
+}
+
+function switchView(v) {
+  document.getElementById('view-notes').classList.toggle('hidden', v!=='notes');
+  document.getElementById('view-graph').classList.toggle('hidden', v!=='graph');
+  document.getElementById('btn-notes').classList.toggle('active', v==='notes');
+  document.getElementById('btn-graph').classList.toggle('active', v==='graph');
+  if (v==='graph') renderGraph();
+}
+
+// ── GRAPH ────────────────────────────────────────────────
+let gAnim = null;
+function renderGraph() {
+  const cv = document.getElementById('graph-canvas');
+  const ctx = cv.getContext('2d');
+  cv.width = cv.offsetWidth; cv.height = cv.offsetHeight;
+  const W = cv.width, H = cv.height;
+  if (!notes.length) { ctx.fillStyle='#5a5950'; ctx.font='14px Syne,sans-serif'; ctx.textAlign='center'; ctx.fillText('Nenhuma nota para exibir.', W/2, H/2); return; }
+  const nodes = notes.map((n,i) => ({
+    id:n.id, lbl:(n.title||'Sem título').slice(0,20), tags:n.tags,
+    x: W/2 + Math.cos(i/notes.length*2*Math.PI)*Math.min(W,H)*.3,
+    y: H/2 + Math.sin(i/notes.length*2*Math.PI)*Math.min(W,H)*.3,
+    vx:0, vy:0, r: 6 + Math.min((n.body||'').length/200, 6)
+  }));
+  const edges = [];
+  for (let i=0;i<nodes.length;i++) for (let j=i+1;j<nodes.length;j++) {
+    const s = notes[i].tags.filter(t => notes[j].tags.includes(t));
+    if (s.length) edges.push({a:i,b:j,w:s.length});
+  }
+  function tick() {
+    for (let i=0;i<nodes.length;i++) for (let j=0;j<nodes.length;j++) {
+      if (i===j) continue;
+      const dx=nodes[i].x-nodes[j].x, dy=nodes[i].y-nodes[j].y, d=Math.sqrt(dx*dx+dy*dy)||1;
+      const f=2000/(d*d); nodes[i].vx+=dx/d*f; nodes[i].vy+=dy/d*f;
+    }
+    edges.forEach(e => {
+      const dx=nodes[e.a].x-nodes[e.b].x, dy=nodes[e.a].y-nodes[e.b].y, d=Math.sqrt(dx*dx+dy*dy)||1, f=(d-120)*.05;
+      nodes[e.a].vx-=dx/d*f; nodes[e.a].vy-=dy/d*f; nodes[e.b].vx+=dx/d*f; nodes[e.b].vy+=dy/d*f;
+    });
+    nodes.forEach(n => { n.vx*=.8; n.vy*=.8; n.x=Math.max(40,Math.min(W-40,n.x+n.vx)); n.y=Math.max(40,Math.min(H-40,n.y+n.vy)); });
+  }
+  function draw() {
+    ctx.clearRect(0,0,W,H);
+    edges.forEach(e => { ctx.beginPath(); ctx.moveTo(nodes[e.a].x,nodes[e.a].y); ctx.lineTo(nodes[e.b].x,nodes[e.b].y); ctx.strokeStyle=`rgba(201,245,66,${.08+e.w*.06})`; ctx.lineWidth=e.w; ctx.stroke(); });
+    nodes.forEach(n => { ctx.beginPath(); ctx.arc(n.x,n.y,n.r,0,Math.PI*2); ctx.fillStyle=n.id===currentId?'#c9f542':'#2e2e28'; ctx.strokeStyle=n.id===currentId?'#c9f542':'#5a5950'; ctx.lineWidth=1.5; ctx.fill(); ctx.stroke(); ctx.fillStyle=n.id===currentId?'#c9f542':'#9c9a8e'; ctx.font='11px Syne,sans-serif'; ctx.textAlign='center'; ctx.fillText(n.lbl,n.x,n.y-n.r-5); });
+  }
+  if (gAnim) cancelAnimationFrame(gAnim);
+  let frame = 0;
+  const loop = () => { if(frame<120) tick(); draw(); frame++; gAnim=requestAnimationFrame(loop); };
+  loop();
+}
+
+// ── UTILS ────────────────────────────────────────────────
+function fmtDate(ts) {
+  const d=new Date(ts), now=new Date(), diff=now-d;
+  if(diff<60000)return'agora'; if(diff<3600000)return Math.floor(diff/60000)+'min';
+  if(diff<86400000)return Math.floor(diff/3600000)+'h'; if(diff<604800000)return Math.floor(diff/86400000)+'d';
+  return d.toLocaleDateString('pt-BR',{day:'2-digit',month:'short'});
+}
+
+function toast(msg, type='') {
+  const t = document.getElementById('toast');
+  t.textContent = msg; t.className = 'toast show ' + type;
+  setTimeout(() => t.className='toast', 2400);
+}
+
+// ── KEYBOARD ────────────────────────────────────────────
+document.addEventListener('keydown', e => {
+  if (e.ctrlKey||e.metaKey) {
+    if(e.key==='n'){e.preventDefault();newNote();}
+    if(e.key==='s'){e.preventDefault();saveNote();}
+    if(e.key==='k'){e.preventDefault();document.getElementById('search-input').focus();}
+  }
+  if(e.key==='Escape'){ activeTag=null; searchQ=''; document.getElementById('search-input').value=''; renderTagCloud(); renderList(); }
+});
+document.getElementById('editor').addEventListener('blur', () => { if(dirty) autoSave(); });
+document.getElementById('note-title').addEventListener('blur', () => { if(dirty) autoSave(); });
+
+// ── INIT ─────────────────────────────────────────────────
+if (token) {
+  driveOn = true; closeAuth();
+  setDriveStatus('online', 'Drive ✓');
+  updateDrivePanel();
+  dlog('Sessão restaurada. Use "Carregar do Drive" para sincronizar.', 'info');
+}
+
+renderList(); updateStats();
+
+if (!notes.length) {
+  notes = [
+    { id:gid(), title:'Bem-vindo!', tags:['ajuda'], body:`# Bem-vindo ao seu Segundo Cérebro ✦\n\n## Atalhos\n- **Ctrl+N** — nova nota\n- **Ctrl+S** — salvar\n- **Ctrl+K** — buscar\n- **Esc** — limpar filtros\n\n## Drive\nSuas notas são salvas como arquivos **.md** no Google Drive, na pasta \`/SegundoCerebro/\`.\n\nCompatíveis com o Obsidian — você pode abrir a mesma pasta em ambos.\n\n## Tags\nDigite no campo de tags e pressione **Enter**. Filtre clicando nas tags da barra lateral.`, created:Date.now(), updated:Date.now() },
+    { id:gid(), title:'Como as tags funcionam', tags:['ajuda','organização'], body:`# Tags no Segundo Cérebro\n\nAs tags são salvas no frontmatter YAML dos arquivos .md:\n\n\`\`\`yaml\n---\ntags: [ajuda, organização]\ncreated: 2024-01-01T00:00:00.000Z\n---\n\`\`\`\n\nIsso garante compatibilidade total com o **Obsidian**.\n\nNotas com tags compartilhadas aparecem na aba **Relacionadas**.`, created:Date.now(), updated:Date.now() },
+  ];
+  saveL(); renderList(); updateStats();
+}
+</script>
+</body>
+</html>
